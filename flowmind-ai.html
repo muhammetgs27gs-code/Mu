@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowMind AI — Yapay Zeka Asistanı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#08080e;--bg2:#0f0f18;--bg3:#181824;--card:rgba(255,255,255,0.038);--cb:rgba(255,255,255,0.07);--text:#eeeeff;--text2:#8888aa;--text3:#44445a;--a:#7c6af7;--a2:#e86aff;--a3:#3de8b0;--a4:#f5a623;--sh:0 8px 40px rgba(0,0,0,.5);--r:16px;--font:'DM Sans',sans-serif;--fd:'Syne',sans-serif;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+.wrap{max-width:920px;margin:0 auto;padding:40px 22px 70px;}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.brand-ico{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--a),var(--a2));display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.brand-t{font-family:var(--fd);font-size:22px;font-weight:800;}
+.brand-sub{font-size:12px;color:var(--text2);}
+.lead{font-size:12.5px;color:var(--text2);line-height:1.6;max-width:680px;margin:16px 0 26px;}
+.card{background:var(--card);border:1px solid var(--cb);border-radius:var(--r);padding:18px 20px;backdrop-filter:blur(10px);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all .2s;}
+.btn-g{background:var(--card);border:1px solid var(--cb);color:var(--text);}
+.btn-g:hover{background:var(--bg3);}
+.btn-p{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;}
+.btn-p:hover{filter:brightness(1.08);}
+.btn-sm{padding:7px 13px;font-size:12px;}
+.login-card{text-align:center;padding:60px 24px;}
+.login-card .brand-ico{margin:0 auto 18px;width:56px;height:56px;font-size:26px;}
+#app{display:none;}
+.bar{height:8px;border-radius:6px;background:var(--bg3);overflow:hidden;}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--a),var(--a3));transition:width .4s;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:18px;}
+.icard{background:var(--card);border:1px solid var(--cb);border-radius:var(--r);padding:16px 18px;}
+.icard .ico{font-size:26px;margin-bottom:8px;}
+.icard .t{font-weight:800;font-size:13.5px;margin-bottom:5px;font-family:var(--fd);}
+.icard .d{font-size:12.5px;color:var(--text2);line-height:1.55;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.userchip{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);}
+.userchip img{width:26px;height:26px;border-radius:50%;}
+.foot-note{font-size:10.5px;color:var(--text3);margin-top:26px;line-height:1.6;border-top:1px solid var(--cb);padding-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="brand-ico">🧠</div>
+    <div>
+      <div class="brand-t">FlowMind AI</div>
+      <div class="brand-sub">FlowMind uygulamasının bağımsız yapay zeka asistanı</div>
+    </div>
+  </div>
+  <p class="lead">Bu, FlowMind ana uygulamasından <b>ayrı, bağımsız bir uygulamadır</b> — ama aynı Firebase veri tabanını kullanır. FlowMind'a nasıl giriş yapıyorsan buraya da aynı hesapla gir; alışkanlık, pomodoro ve film/dizi verilerini oradan okuyup sana kişisel içgörüler üretir. Bir sohbet botu değildir; kendi verilerinle çalışan istatistiksel bir analiz motorudur.</p>
+
+  <div class="card login-card" id="loginCard">
+    <div class="brand-ico">🔒</div>
+    <div style="font-family:var(--fd);font-weight:800;font-size:16px;margin-bottom:8px;">Giriş Yap</div>
+    <div style="font-size:12.5px;color:var(--text2);margin-bottom:18px;">FlowMind'da kullandığın Google hesabıyla giriş yap.</div>
+    <button class="btn btn-p" onclick="aiSignIn()">🔑 Google ile Giriş Yap</button>
+  </div>
+
+  <div id="app">
+    <div class="topbar">
+      <div class="userchip" id="userChip"></div>
+      <button class="btn btn-g btn-sm" onclick="aiSignOut()">Çıkış Yap</button>
+    </div>
+
+    <div class="card" style="margin:18px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:13px;">📡 Öğrenme Seviyesi</div>
+        <div style="font-size:12px;color:var(--text2);" id="signalCount">0 veri sinyali</div>
+      </div>
+      <div class="bar"><div class="bar-fill" id="maturityBar" style="width:0%;"></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;">FlowMind'da alışkanlık işaretledikçe, pomodoro tamamladıkça ve film/dizi ekledikçe bu seviye artar.</div>
+    </div>
+
+    <div class="grid" id="insightGrid"></div>
+
+    <button class="btn btn-g btn-sm" style="margin-top:18px;" onclick="loadAIData(true)">🔄 Yeniden Analiz Et</button>
+
+    <div class="foot-note">
+      Veriler Firebase üzerinden, FlowMind ana uygulamasıyla aynı hesap/veritabanından (flowmind_users) okunur; bu uygulama sadece okuma yapar, FlowMind'daki verilerini değiştirmez. Topluluk trendi kartı için tür tercihlerin (isimsiz/anonim, sadece tür+puan düzeyinde) fm_public_profiles koleksiyonuna yazılır — hangi filmi izlediğin gibi kişisel detaylar paylaşılmaz.
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const FB_CONFIG = {
+  apiKey: 'AIzaSyA0BcDAQ_QAkgPXHVzoeXZe0j3ia4vHo-Q',
+  authDomain: 'm-galeri.firebaseapp.com',
+  projectId: 'm-galeri',
+  appId: '1:538142359700:web:7e98145fb1f41406203481',
+  storageBucket: 'm-galeri.appspot.com',
+  messagingSenderId: '538142359700'
+};
+let fbApp=null, fbAuth=null, fbDb=null, fbUser=null, remoteS=null;
+
+function initFirebase(){
+  try{
+    const APP_NAME='flowmind_app';
+    let app;
+    try{ app=firebase.app(APP_NAME); }catch(e){ app=firebase.initializeApp(FB_CONFIG,APP_NAME); }
+    fbApp=app; fbAuth=fbApp.auth(); fbDb=fbApp.firestore();
+    fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(()=>{
+      fbAuth.onAuthStateChanged(user=>{
+        fbUser=user;
+        updateAuthUI();
+        if(user) loadAIData(false);
+      });
+    });
+  }catch(e){ console.error('Firebase init hatası',e); }
+}
+function aiSignIn(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(err=>alert('Giriş hatası: '+err.message));
+}
+function aiSignOut(){ fbAuth.signOut(); }
+function updateAuthUI(){
+  document.getElementById('loginCard').style.display=fbUser?'none':'block';
+  document.getElementById('app').style.display=fbUser?'block':'none';
+  if(fbUser){
+    document.getElementById('userChip').innerHTML=`${fbUser.photoURL?`<img src="${fbUser.photoURL}">`:''}<span>${fbUser.displayName||fbUser.email}</span>`;
+  }
+}
+
+// ===== Ana FlowMind uygulamasındaki AI motoruyla birebir aynı hesaplama mantığı =====
+function computeAIInsightsFromState(S){
+  const model=S.aiModel||{habitStats:{},pomoHourStats:new Array(24).fill(0),totalSignals:0};
+  const maturity=Math.max(0,Math.min(100,Math.round(((model.totalSignals||0)/150)*100)));
+  const insights=[];
+  const WD_NAMES=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+
+  const hourStats=model.pomoHourStats||new Array(24).fill(0);
+  let maxHour=0;
+  hourStats.forEach((v,i)=>{ if(v>hourStats[maxHour]) maxHour=i; });
+  if(hourStats[maxHour]>=3){
+    insights.push({icon:'⏰',title:'En Verimli Saatin',text:`Pomodoro geçmişine göre en çok ${maxHour}:00–${(maxHour+1)%24}:00 arasında çalışıyorsun (${hourStats[maxHour]} tamamlanmış seans).`});
+  }
+
+  const todayWd=new Date().getDay();
+  let riskiest=null;
+  (S.habits||[]).forEach(h=>{
+    const st=model.habitStats[h.id];
+    if(!st) return;
+    const rec=st.weekday[todayWd];
+    if(rec&&rec.total>=4){
+      const rate=rec.done/rec.total;
+      if(rate<0.5&&(!riskiest||rate<riskiest.rate)) riskiest={name:h.name,rate};
+    }
+  });
+  if(riskiest){
+    insights.push({icon:'⚠️',title:'Kaçırma Riski',text:`"${riskiest.name}" alışkanlığını genelde ${WD_NAMES[todayWd]} günleri düşük oranda (%${Math.round(riskiest.rate*100)}) tamamlıyorsun.`});
+  }
+
+  let best=null;
+  (S.habits||[]).forEach(h=>{
+    const st=model.habitStats[h.id];
+    if(!st) return;
+    st.weekday.forEach((rec,wd)=>{
+      if(rec&&rec.total>=4){
+        const rate=rec.done/rec.total;
+        if(rate>=0.7&&(!best||rate>best.rate)) best={name:h.name,rate,wd};
+      }
+    });
+  });
+  if(best){
+    insights.push({icon:'💪',title:'Güçlü Yönün',text:`"${best.name}" alışkanlığını ${WD_NAMES[best.wd]} günleri %${Math.round(best.rate*100)} oranında tamamlıyorsun. Harika gidiyor!`});
+  }
+
+  const genreScore={};
+  (S.media||[]).forEach(m=>{
+    if(!m.genre) return;
+    const w=(m.status==='completed'?2:1)*(m.rating?Math.max(1,m.rating):1);
+    genreScore[m.genre]=(genreScore[m.genre]||0)+w;
+  });
+  const topGenre=Object.entries(genreScore).sort((a,b)=>b[1]-a[1])[0];
+  if(topGenre){
+    insights.push({icon:'🎬',title:'Zevkini Öğrendim',text:`İzleme geçmişine bakınca en çok "${topGenre[0]}" türünü seviyorsun.`});
+  }
+
+  const trend=weeklyHabitTrend(S);
+  if(trend) insights.push({icon:trend.diff>=0?'📈':'📉',title:'Haftalık Trend',text:trend.text});
+
+  if(!insights.length){
+    insights.push({icon:'🌱',title:'Henüz Öğreniyorum',text:'FlowMind\'ı kullandıkça (alışkanlık işaretle, pomodoro tamamla, film/dizi ekle) burada sana özel öneriler oluşmaya başlayacak.'});
+  }
+  return {insights,maturity,totalSignals:model.totalSignals||0,genreScore};
+}
+function weeklyHabitTrend(S){
+  if(!S.habits||!S.habits.length) return null;
+  const now=new Date();
+  const rateForRange=(startAgo,endAgo)=>{
+    let done=0,total=0;
+    for(let i=startAgo;i<endAgo;i++){
+      const d=new Date(now); d.setDate(d.getDate()-i);
+      const ds=d.toISOString().slice(0,10);
+      S.habits.forEach(h=>{
+        if(h.type!=='normal') return;
+        total++;
+        const v=h.completions&&h.completions[ds];
+        if(v) done+=(typeof v==='number'?v:1);
+      });
+    }
+    return total?done/total:0;
+  };
+  const thisWeek=rateForRange(0,7), lastWeek=rateForRange(7,14);
+  if(thisWeek===0&&lastWeek===0) return null;
+  const diff=Math.round((thisWeek-lastWeek)*100);
+  let text;
+  if(diff>5) text=`Bu haftaki alışkanlık tamamlama oranın geçen haftaya göre %${diff} arttı. Harika gidiyor!`;
+  else if(diff<-5) text=`Bu haftaki alışkanlık tamamlama oranın geçen haftaya göre %${Math.abs(diff)} düştü.`;
+  else text=`Alışkanlık tamamlama oranın geçen haftayla benzer seyrediyor (%${Math.round(thisWeek*100)}).`;
+  return {diff,text};
+}
+
+async function loadAIData(force){
+  if(!fbUser) return;
+  const grid=document.getElementById('insightGrid');
+  grid.innerHTML='<div class="icard"><div class="ico">📡</div><div class="t">Yükleniyor…</div><div class="d">Firebase\'den verilerin getiriliyor.</div></div>';
+  try{
+    const doc=await fbDb.collection('flowmind_users').doc(fbUser.uid).get();
+    if(!doc.exists){
+      grid.innerHTML='<div class="icard"><div class="ico">📭</div><div class="t">Veri Bulunamadı</div><div class="d">FlowMind\'da henüz senkronize bir verin yok. Önce FlowMind\'a giriş yapıp biraz kullan.</div></div>';
+      return;
+    }
+    const data=doc.data();
+    remoteS=JSON.parse(data.state||'{}');
+    const {insights,maturity,totalSignals,genreScore}=computeAIInsightsFromState(remoteS);
+    document.getElementById('maturityBar').style.width=maturity+'%';
+    document.getElementById('signalCount').textContent=totalSignals+' veri sinyali';
+    grid.innerHTML=insights.map(i=>`
+      <div class="icard">
+        <div class="ico">${i.icon}</div>
+        <div class="t">${i.title}</div>
+        <div class="d">${i.text}</div>
+      </div>`).join('')+`
+      <div class="icard" id="communityCard">
+        <div class="ico">🌐</div>
+        <div class="t">Topluluk Trendi</div>
+        <div class="d" id="communityText">⏳ Firebase'den topluluk verisi getiriliyor…</div>
+      </div>`;
+    await pushGenreSignal(genreScore);
+    await loadCommunityTrend(genreScore);
+  }catch(e){
+    grid.innerHTML=`<div class="icard"><div class="ico">⚠️</div><div class="t">Hata</div><div class="d">Veriler getirilemedi: ${e.message}</div></div>`;
+  }
+}
+async function pushGenreSignal(genreScore){
+  if(!genreScore) return;
+  const top=Object.entries(genreScore).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if(!top.length) return;
+  const payload={}; top.forEach(([g,s])=>{ payload[g]=s; });
+  try{
+    await fbDb.collection('fm_public_profiles').doc(fbUser.uid).set({genreScores:payload,aiUpdatedAt:new Date().toISOString()},{merge:true});
+  }catch(e){ /* topluluk sinyali kritik değil, sessiz geç */ }
+}
+async function loadCommunityTrend(myGenreScore){
+  const box=document.getElementById('communityText');
+  if(!box) return;
+  try{
+    const snap=await fbDb.collection('fm_public_profiles').limit(60).get();
+    const agg={}; let contributors=0;
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(!d||!d.genreScores) return;
+      contributors++;
+      Object.entries(d.genreScores).forEach(([g,s])=>{ agg[g]=(agg[g]||0)+(Number(s)||0); });
+    });
+    const sorted=Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+    if(!contributors||!sorted.length){
+      box.textContent='Topluluktan henüz yeterli veri yok.';
+      return;
+    }
+    const total=sorted.reduce((s,[,v])=>s+v,0)||1;
+    const [topGenre,topVal]=sorted[0];
+    const pct=Math.round((topVal/total)*100);
+    const myTop=Object.entries(myGenreScore||{}).sort((a,b)=>b[1]-a[1])[0];
+    let extra='';
+    if(myTop&&myTop[0]!==topGenre) extra=` Senin en çok izlediğin tür "${myTop[0]}" — topluluğun geneliyle biraz farklısın.`;
+    box.textContent=`Firebase'deki ${contributors} kullanıcının verisine göre topluluğun en çok tercih ettiği tür "${topGenre}" (~%${pct}).${extra}`;
+  }catch(e){
+    box.textContent='Topluluk verisi şu an getirilemedi.';
+  }
+}
+
+initFirebase();
+</script>
+</body>
+</html>
