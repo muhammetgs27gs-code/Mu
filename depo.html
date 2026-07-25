@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlowMind Depo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#08080e;--bg2:#0f0f18;--bg3:#181824;--bg4:#20202e;--card:rgba(255,255,255,0.038);--cb:rgba(255,255,255,0.07);--text:#eeeeff;--text2:#8888aa;--text3:#44445a;--a:#7c6af7;--a2:#e86aff;--a3:#3de8b0;--a4:#f5a623;--a5:#f0506e;--a6:#38c6f5;--sh:0 8px 40px rgba(0,0,0,.5);--r:16px;--r2:12px;--font:'DM Sans',sans-serif;--fd:'Syne',sans-serif;--tr:.22s cubic-bezier(.4,0,.2,1);}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:radial-gradient(1100px 600px at 10% -10%,var(--bg3) 0%,transparent 60%),radial-gradient(900px 500px at 110% 0%,var(--bg3) 0%,transparent 55%),var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;}
+::selection{background:var(--a);color:#fff;}
+a{color:inherit;}
+
+/* ---- AUTH GATE ---- */
+#authGate{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:22px;text-align:center;padding:20px;}
+#authGate .logo{font-family:var(--fd);font-weight:800;font-size:34px;display:flex;align-items:center;gap:10px;}
+#authGate .logo span.dot{width:10px;height:10px;border-radius:50%;background:var(--a);box-shadow:0 0 18px var(--a);}
+#authGate p{color:var(--text2);font-size:14px;max-width:340px;line-height:1.6;}
+.gbtn{display:flex;align-items:center;gap:10px;background:var(--text);color:#111;border:none;border-radius:999px;padding:13px 26px;font-family:var(--font);font-weight:500;font-size:14px;cursor:pointer;transition:var(--tr);box-shadow:var(--sh);}
+.gbtn:hover{transform:translateY(-1px);filter:brightness(1.05);}
+.gbtn svg{width:18px;height:18px;}
+#authGate.hide,#appRoot.hide{display:none;}
+
+/* ---- LAYOUT ---- */
+#appRoot{min-height:100vh;display:flex;flex-direction:column;}
+header{display:flex;align-items:center;gap:16px;padding:16px 26px;border-bottom:1px solid var(--cb);position:sticky;top:0;background:rgba(8,8,14,.85);backdrop-filter:blur(14px);z-index:20;flex-wrap:wrap;}
+.brand{font-family:var(--fd);font-weight:800;font-size:19px;display:flex;align-items:center;gap:8px;white-space:nowrap;}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--a);box-shadow:0 0 14px var(--a);}
+.searchwrap{flex:1;min-width:160px;max-width:420px;position:relative;}
+.searchwrap input{width:100%;background:var(--card);border:1px solid var(--cb);border-radius:999px;padding:10px 16px 10px 38px;color:var(--text);font-family:var(--font);font-size:13.5px;outline:none;transition:var(--tr);}
+.searchwrap input:focus{border-color:var(--a);}
+.searchwrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--text2);}
+.spacer{flex:1;}
+.userchip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--cb);border-radius:999px;padding:5px 12px 5px 5px;cursor:pointer;position:relative;}
+.userchip img{width:26px;height:26px;border-radius:50%;}
+.userchip span{font-size:12.5px;color:var(--text2);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.userMenu{position:absolute;top:calc(100% + 8px);right:0;background:var(--bg3);border:1px solid var(--cb);border-radius:var(--r2);box-shadow:var(--sh);padding:6px;min-width:150px;display:none;z-index:30;}
+.userMenu.show{display:block;}
+.userMenu button{width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:var(--font);font-size:13px;padding:9px 10px;border-radius:8px;cursor:pointer;}
+.userMenu button:hover{background:var(--card);}
+
+.toolbar{display:flex;align-items:center;gap:10px;padding:16px 26px;flex-wrap:wrap;border-bottom:1px solid var(--cb);}
+.btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:11px;padding:10px 16px;font-family:var(--font);font-weight:500;font-size:13.5px;cursor:pointer;transition:var(--tr);white-space:nowrap;}
+.btn-p{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;box-shadow:0 4px 18px rgba(124,106,247,.35);}
+.btn-p:hover{transform:translateY(-1px);filter:brightness(1.06);}
+.btn-g{background:var(--card);color:var(--text);border:1px solid var(--cb);}
+.btn-g:hover{background:var(--bg4);}
+.btn-g.active{border-color:var(--a);color:var(--a);}
+select.sel{background:var(--card);color:var(--text);border:1px solid var(--cb);border-radius:11px;padding:9px 12px;font-family:var(--font);font-size:13px;outline:none;cursor:pointer;}
+.usagebar{margin-left:auto;font-size:11.5px;color:var(--text3);display:flex;align-items:center;gap:8px;white-space:nowrap;}
+
+main{flex:1;padding:24px 26px 60px;position:relative;}
+#dropOverlay{position:fixed;inset:0;background:rgba(124,106,247,.12);backdrop-filter:blur(3px);border:3px dashed var(--a);z-index:50;display:none;align-items:center;justify-content:center;font-family:var(--fd);font-size:22px;font-weight:700;color:var(--a);}
+#dropOverlay.show{display:flex;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+.fcard{background:var(--card);border:1px solid var(--cb);border-radius:var(--r2);padding:14px;position:relative;transition:var(--tr);cursor:default;overflow:hidden;}
+.fcard:hover{border-color:var(--a);transform:translateY(-2px);box-shadow:var(--sh);}
+.fcard .accent{position:absolute;left:0;top:0;bottom:0;width:5px;}
+.fcard .thumbwrap{width:100%;height:96px;border-radius:9px;background:var(--bg4);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;font-size:34px;}
+.fcard .thumbwrap img{width:100%;height:100%;object-fit:cover;}
+.fcard .fname{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
+.fcard .fmeta{font-size:11px;color:var(--text3);}
+.fcard .factions{display:flex;gap:6px;margin-top:10px;opacity:0;transition:var(--tr);}
+.fcard:hover .factions{opacity:1;}
+.iconbtn{width:26px;height:26px;border-radius:7px;border:1px solid var(--cb);background:var(--bg2);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12.5px;transition:var(--tr);}
+.iconbtn:hover{color:var(--text);border-color:var(--a);}
+.colorDot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer;flex-shrink:0;}
+
+.empty{text-align:center;padding:80px 20px;color:var(--text3);}
+.empty .big{font-size:40px;margin-bottom:14px;}
+.empty p{font-size:13.5px;}
+
+.swatchpop{position:fixed;background:var(--bg3);border:1px solid var(--cb);border-radius:12px;padding:10px;box-shadow:var(--sh);display:none;grid-template-columns:repeat(5,1fr);gap:8px;z-index:60;}
+.swatchpop.show{display:grid;}
+.swatchpop .sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:var(--tr);}
+.swatchpop .sw:hover{transform:scale(1.15);}
+.swatchpop .sw.none{background:var(--bg4);position:relative;}
+.swatchpop .sw.none::after{content:'✕';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);}
+
+#uploadQueue{position:fixed;bottom:20px;right:20px;width:300px;display:flex;flex-direction:column;gap:8px;z-index:70;}
+.uq-item{background:var(--bg3);border:1px solid var(--cb);border-radius:12px;padding:10px 12px;box-shadow:var(--sh);}
+.uq-item .uq-name{font-size:12px;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.uq-bar{height:5px;border-radius:3px;background:var(--bg4);overflow:hidden;}
+.uq-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--a),var(--a2));width:0%;transition:width .2s;}
+.uq-item.done .uq-bar i{background:var(--a3);}
+.uq-item.err .uq-bar i{background:var(--a5);}
+
+#toasts{position:fixed;top:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:100;}
+.toast{background:var(--bg3);border:1px solid var(--cb);border-radius:11px;padding:10px 18px;font-size:13px;box-shadow:var(--sh);animation:tin .25s;}
+@keyframes tin{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+@media(max-width:560px){
+  header{padding:12px 16px;} .toolbar{padding:12px 16px;} main{padding:16px;}
+  .usagebar{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div id="authGate">
+  <div class="logo"><span class="dot"></span>FlowMind Depo</div>
+  <p>Dosyalarını buluta yükle, istediğin zaman her yerden eriş. FlowMind ile aynı hesabı kullanır.</p>
+  <button class="gbtn" onclick="signIn()">
+    <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.6 32.9 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 18.9 12 24 12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.7 0-14.4 4.3-17.7 10.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.8 14.2-5l-6.6-5.4C29.6 36.6 26.9 37.5 24 37.5c-5.2 0-9.6-3.1-11.3-7.5l-6.6 5.1C9.5 40.5 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.4 4.4-4.5 5.9l6.6 5.4C41.4 36 45 30.6 45 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+    Google ile Giriş Yap
+  </button>
+</div>
+
+<div id="appRoot" class="hide">
+  <header>
+    <div class="brand"><span class="dot"></span>FlowMind Depo</div>
+    <div class="searchwrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" placeholder="Dosyalarda ara..." oninput="renderGrid()"/>
+    </div>
+    <div class="spacer"></div>
+    <div class="userchip" onclick="toggleUserMenu()">
+      <img id="uAvatar" src="" alt=""/>
+      <span id="uName"></span>
+      <div class="userMenu" id="userMenu">
+        <button onclick="signOutUser()">🚪 Çıkış Yap</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn btn-p" onclick="document.getElementById('fileInput').click()">⬆ Dosya Yükle</button>
+    <input type="file" id="fileInput" multiple style="display:none;" onchange="handleFilePick(event)"/>
+    <select class="sel" id="sortSel" onchange="renderGrid()">
+      <option value="date_desc">Yeni → Eski</option>
+      <option value="date_asc">Eski → Yeni</option>
+      <option value="name_asc">İsim (A-Z)</option>
+      <option value="name_desc">İsim (Z-A)</option>
+      <option value="size_desc">Boyut (Büyük)</option>
+      <option value="size_asc">Boyut (Küçük)</option>
+    </select>
+    <div class="usagebar" id="usageInfo">—</div>
+    <div class="usagebar" style="margin-left:0;" title="Ücretsiz Firebase planı sınırı">· max 10MB/dosya</div>
+  </div>
+
+  <main>
+    <div id="grid" class="grid"></div>
+    <div id="emptyState" class="empty" style="display:none;">
+      <div class="big">📁</div>
+      <p>Henüz dosya yok. Yukarıdan yükle ya da dosyaları buraya sürükle-bırak.</p>
+    </div>
+  </main>
+</div>
+
+<div id="dropOverlay">⬇ Bırak ve yükle</div>
+<div id="uploadQueue"></div>
+<div id="toasts"></div>
+<div id="swatchpop" class="swatchpop"></div>
+
+<script>
+'use strict';
+
+/* ===== FIREBASE — FlowMind ile AYNI proje/config ===== */
+const FB_CONFIG = {
+  apiKey: 'AIzaSyA0BcDAQ_QAkgPXHVzoeXZe0j3ia4vHo-Q',
+  authDomain: 'm-galeri.firebaseapp.com',
+  projectId: 'm-galeri',
+  appId: '1:538142359700:web:7e98145fb1f41406203481',
+  storageBucket: 'm-galeri.appspot.com',
+  messagingSenderId: '538142359700'
+};
+const APP_NAME = 'flowmind_app'; // FlowMind ile aynı isim -> aynı oturum/persistans alanı
+let fbApp, fbAuth, fbDb, fbUser = null;
+let files = [];
+let unsub = null;
+
+function initFirebase(){
+  let app;
+  try { app = firebase.app(APP_NAME); } catch(e){ app = firebase.initializeApp(FB_CONFIG, APP_NAME); }
+  fbApp = app;
+  fbAuth = fbApp.auth();
+  fbDb = fbApp.firestore();
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).finally(()=>{
+    fbAuth.onAuthStateChanged(user=>{
+      fbUser = user;
+      if(user){
+        document.getElementById('authGate').classList.add('hide');
+        document.getElementById('appRoot').classList.remove('hide');
+        document.getElementById('uAvatar').src = user.photoURL || '';
+        document.getElementById('uName').textContent = user.displayName || user.email || 'Kullanıcı';
+        listenFiles();
+      } else {
+        document.getElementById('authGate').classList.remove('hide');
+        document.getElementById('appRoot').classList.add('hide');
+        if(unsub){ unsub(); unsub=null; }
+      }
+    });
+  });
+}
+function signIn(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(e=>{ console.error(e); toast('Giriş başarısız: '+e.message,'error'); });
+}
+function signOutUser(){ fbAuth.signOut(); }
+function toggleUserMenu(){ document.getElementById('userMenu').classList.toggle('show'); }
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.userchip')) document.getElementById('userMenu').classList.remove('show');
+  if(!e.target.closest('.swatchpop') && !e.target.closest('.colorDot')) document.getElementById('swatchpop').classList.remove('show');
+});
+
+/* ===== TOAST ===== */
+function toast(msg,type){
+  const el=document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  if(type==='error') el.style.borderColor='var(--a5)';
+  if(type==='success') el.style.borderColor='var(--a3)';
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+
+/* ===== FIRESTORE: dosya listesi ===== */
+function listenFiles(){
+  if(unsub) unsub();
+  unsub = fbDb.collection('fm_storage_files').where('uid','==',fbUser.uid)
+    .onSnapshot(snap=>{
+      files = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(f=>!f.uploading);
+      renderGrid();
+      updateUsage();
+    }, err=>{ console.error(err); toast('Dosyalar yüklenemedi: '+err.message,'error'); });
+}
+function updateUsage(){
+  const total = files.reduce((a,f)=>a+(f.size||0),0);
+  document.getElementById('usageInfo').textContent = files.length+' dosya · '+fmtBytes(total)+' kullanılıyor';
+}
+function fmtBytes(b){
+  if(!b) return '0 B';
+  if(b<1024) return b+' B';
+  if(b<1024*1024) return (b/1024).toFixed(1)+' KB';
+  if(b<1024*1024*1024) return (b/1024/1024).toFixed(1)+' MB';
+  return (b/1024/1024/1024).toFixed(2)+' GB';
+}
+function fmtDate(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  return d.toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'});
+}
+function extIcon(name,type){
+  const ext=(name.split('.').pop()||'').toLowerCase();
+  if((type||'').startsWith('image/')) return null; // thumbnail kullanılacak
+  if(ext==='pdf') return '📕';
+  if(['doc','docx'].includes(ext)) return '📘';
+  if(['xls','xlsx','csv'].includes(ext)) return '📗';
+  if(['ppt','pptx'].includes(ext)) return '📙';
+  if(['zip','rar','7z'].includes(ext)) return '🗜️';
+  if(['mp4','mov','avi','mkv','webm'].includes(ext)) return '🎞️';
+  if(['mp3','wav','m4a','flac'].includes(ext)) return '🎵';
+  if(['txt','md','json','js','html','css','py'].includes(ext)) return '📄';
+  return '📦';
+}
+const FILE_COLORS=['#7c6af7','#e86aff','#f0506e','#f5a623','#3de8b0','#38c6f5','#ff8a3d','#c084fc','#94a3b8'];
+
+/* ===== GRID RENDER ===== */
+function renderGrid(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase();
+  const sort=document.getElementById('sortSel').value;
+  let list=files.filter(f=>(f.name||'').toLowerCase().includes(q));
+  list.sort((a,b)=>{
+    if(sort==='name_asc') return (a.name||'').localeCompare(b.name||'');
+    if(sort==='name_desc') return (b.name||'').localeCompare(a.name||'');
+    if(sort==='size_desc') return (b.size||0)-(a.size||0);
+    if(sort==='size_asc') return (a.size||0)-(b.size||0);
+    if(sort==='date_asc') return (a.createdAt||'').localeCompare(b.createdAt||'');
+    return (b.createdAt||'').localeCompare(a.createdAt||''); // date_desc default
+  });
+  const grid=document.getElementById('grid');
+  const empty=document.getElementById('emptyState');
+  if(!list.length){ grid.innerHTML=''; empty.style.display = files.length? 'none':'block'; if(files.length && q) { empty.style.display='block'; empty.querySelector('p').textContent='Aramanla eşleşen dosya yok.'; } return; }
+  empty.style.display='none';
+  grid.innerHTML=list.map(f=>{
+    const icon=extIcon(f.name,f.type);
+    const isImg=(f.type||'').startsWith('image/') && f.thumb;
+    const thumb = isImg ? '<img src="'+f.thumb+'" loading="lazy"/>' : icon;
+    const accent = f.color ? 'background:'+f.color+';' : 'background:transparent;';
+    return '<div class="fcard" data-id="'+f.id+'">'+
+      '<div class="accent" style="'+accent+'"></div>'+
+      '<div class="thumbwrap">'+thumb+'</div>'+
+      '<div class="fname" title="'+escAttr(f.name)+'">'+escHtml(f.name)+'</div>'+
+      '<div class="fmeta">'+fmtBytes(f.size)+' · '+fmtDate(f.createdAt)+'</div>'+
+      '<div class="factions">'+
+        '<div class="colorDot" style="background:'+(f.color||'#3a3a4a')+';" onclick="openSwatch(event,\''+f.id+'\')" title="Renk"></div>'+
+        '<div class="iconbtn" onclick="downloadFile(\''+f.id+'\')" title="İndir">⬇</div>'+
+        '<div class="iconbtn" onclick="renameFile(\''+f.id+'\')" title="Yeniden adlandır">✎</div>'+
+        '<div class="iconbtn" onclick="deleteFile(\''+f.id+'\')" title="Sil">🗑</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+
+/* ===== RENK SEÇİCİ ===== */
+function openSwatch(ev,id){
+  ev.stopPropagation();
+  const pop=document.getElementById('swatchpop');
+  const rect=ev.target.getBoundingClientRect();
+  pop.style.left=Math.min(rect.left, window.innerWidth-180)+'px';
+  pop.style.top=(rect.bottom+8)+'px';
+  pop.innerHTML='<div class="sw none" onclick="setColor(\''+id+'\',null)"></div>'+
+    FILE_COLORS.map(c=>'<div class="sw" style="background:'+c+';" onclick="setColor(\''+id+'\',\''+c+'\')"></div>').join('');
+  pop.classList.add('show');
+}
+function setColor(id,color){
+  fbDb.collection('fm_storage_files').doc(id).update({color: color}).catch(e=>toast('Renk güncellenemedi','error'));
+  document.getElementById('swatchpop').classList.remove('show');
+}
+
+/* ===== DOSYA İŞLEMLERİ ===== */
+async function downloadFile(id){
+  const f=files.find(x=>x.id===id); if(!f) return;
+  toast('İndiriliyor: '+f.name,'info');
+  try{
+    const snap=await fbDb.collection('fm_storage_files').doc(id).collection('chunks').get();
+    const parts=snap.docs.map(d=>({idx:parseInt(d.id,10), data:d.data().data})).sort((a,b)=>a.idx-b.idx);
+    const base64=parts.map(p=>p.data).join('');
+    const byteChars=atob(base64);
+    const bytes=new Uint8Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++) bytes[i]=byteChars.charCodeAt(i);
+    const blob=new Blob([bytes],{type:f.type||'application/octet-stream'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=f.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch(e){ console.error(e); toast('İndirilemedi: '+e.message,'error'); }
+}
+function renameFile(id){
+  const f=files.find(x=>x.id===id); if(!f) return;
+  const n=prompt('Yeni ad:', f.name);
+  if(!n || !n.trim() || n.trim()===f.name) return;
+  fbDb.collection('fm_storage_files').doc(id).update({name:n.trim()}).then(()=>toast('Yeniden adlandırıldı','success')).catch(()=>toast('Hata oluştu','error'));
+}
+async function deleteFile(id){
+  const f=files.find(x=>x.id===id); if(!f) return;
+  if(!confirm('"'+f.name+'" silinsin mi? Bu işlem geri alınamaz.')) return;
+  try{
+    const docRef=fbDb.collection('fm_storage_files').doc(id);
+    const snap=await docRef.collection('chunks').get();
+    const batch=fbDb.batch();
+    snap.docs.forEach(d=>batch.delete(d.ref));
+    batch.delete(docRef);
+    await batch.commit();
+    toast('Dosya silindi','success');
+  }catch(e){ console.error(e); toast('Silinemedi: '+e.message,'error'); }
+}
+
+/* ===== YÜKLEME (ücretsiz plan: Storage yerine Firestore'da base64 parçalar) ===== */
+const MAX_FILE_SIZE = 10*1024*1024; // 10MB — Firestore ücretsiz plan için güvenli sınır
+const CHUNK_CHARS = 700000; // ~700KB base64 metin/parça, 1MiB doküman limitinin altında
+
+function handleFilePick(ev){ uploadFiles(ev.target.files); ev.target.value=''; }
+function uploadFiles(fileList){
+  if(!fbUser){ toast('Önce giriş yap','error'); return; }
+  [...fileList].forEach(file=>{
+    if(file.size > MAX_FILE_SIZE){ toast(file.name+' çok büyük (ücretsiz plan sınırı: 10MB)','error'); return; }
+    uploadOne(file);
+  });
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result.split(',')[1]); // data:...;base64, önekini at
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+function makeThumbnail(file){
+  if(!file.type.startsWith('image/')) return Promise.resolve(null);
+  return new Promise(resolve=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const maxDim=200;
+      let w=img.width,h=img.height;
+      if(w>h){ h=Math.round(h*maxDim/w); w=maxDim; } else { w=Math.round(w*maxDim/h); h=maxDim; }
+      const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg',0.6));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); resolve(null); };
+    img.src=url;
+  });
+}
+async function uploadOne(file){
+  const q=document.getElementById('uploadQueue');
+  const item=document.createElement('div');
+  item.className='uq-item';
+  item.innerHTML='<div class="uq-name">'+escHtml(file.name)+'</div><div class="uq-bar"><i></i></div>';
+  q.appendChild(item);
+  const bar=item.querySelector('i');
+  try{
+    const [base64, thumb] = await Promise.all([fileToBase64(file), makeThumbnail(file)]);
+    const chunkCount = Math.max(1, Math.ceil(base64.length/CHUNK_CHARS));
+    const docRef = fbDb.collection('fm_storage_files').doc();
+    // Önce meta dokümanı (uploading:true) oluştur — güvenlik kuralları parçaların yazılabilmesi için bu dokümanın var olmasını gerektiriyor
+    await docRef.set({
+      uid:fbUser.uid, name:file.name, size:file.size, type:file.type||'',
+      color:null, thumb:thumb||null, chunkCount, uploading:true,
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()
+    });
+    for(let i=0;i<chunkCount;i++){
+      const part=base64.slice(i*CHUNK_CHARS,(i+1)*CHUNK_CHARS);
+      await docRef.collection('chunks').doc(String(i)).set({data:part});
+      bar.style.width=Math.round(((i+1)/chunkCount)*100)+'%';
+    }
+    await docRef.update({uploading:false});
+    item.classList.add('done');
+    setTimeout(()=>item.remove(),1200);
+  }catch(e){
+    console.error(e);
+    item.classList.add('err');
+    toast(file.name+' yüklenemedi: '+e.message,'error');
+    setTimeout(()=>item.remove(),3500);
+  }
+}
+
+/* ===== SÜRÜKLE-BIRAK ===== */
+let dragCounter=0;
+window.addEventListener('dragenter', e=>{ e.preventDefault(); dragCounter++; if(fbUser) document.getElementById('dropOverlay').classList.add('show'); });
+window.addEventListener('dragleave', e=>{ e.preventDefault(); dragCounter--; if(dragCounter<=0){ dragCounter=0; document.getElementById('dropOverlay').classList.remove('show'); } });
+window.addEventListener('dragover', e=>e.preventDefault());
+window.addEventListener('drop', e=>{
+  e.preventDefault(); dragCounter=0;
+  document.getElementById('dropOverlay').classList.remove('show');
+  if(e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+});
+
+initFirebase();
+</script>
+</body>
+</html>
